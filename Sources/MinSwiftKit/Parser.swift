@@ -10,21 +10,31 @@ class Parser: SyntaxVisitor {
 
     override func visit(_ token: TokenSyntax) {
         print("Parsing \(token.tokenKind)")
+        tokens.append(token)
     }
 
     @discardableResult
     func read() -> TokenSyntax {
-        fatalError("Not Implemented")
+        currentToken = tokens[index]
+        index += 1
+        return currentToken
     }
 
     func peek(_ n: Int = 0) -> TokenSyntax {
-        fatalError("Not Implemented")
+        return tokens[index+n]
     }
 
     // MARK: Practice 2
 
     private func extractNumberLiteral(from token: TokenSyntax) -> Double? {
-        fatalError("Not Implemented")
+        switch token.tokenKind {
+        case .integerLiteral(let value):
+            return Double(value)
+        case .floatingLiteral(let value):
+            return Double(value)
+        default:
+            return 0
+        }
     }
 
     func parseNumber() -> Node {
@@ -36,13 +46,55 @@ class Parser: SyntaxVisitor {
     }
 
     func parseIdentifierExpression() -> Node {
-        fatalError("Not Implemented")
+        let value = extractIdentifierVariable(from: currentToken)
+        print(peek(1).tokenKind)
+        if case .leftParen = peek(1).tokenKind {
+            var call_argments:[CallExpressionNode.Argument] = []
+            read()
+            read()
+            while true {
+                let arg_label = extractArgment(from: currentToken)
+                read()
+                read()
+                guard let arg_value = parseExpression() else {
+                    fatalError("Could not parse expression")
+                }
+                print(arg_value)
+                if case .rightParen = currentToken.tokenKind {
+                    break
+                }
+                if case .comma = currentToken.tokenKind {
+                    read()
+                }
+                let argment = CallExpressionNode.Argument(label: arg_label, value: arg_value)
+                call_argments.append(argment)
+            }
+            print(call_argments)
+            return CallExpressionNode(callee: value, arguments: call_argments)
+        } else {
+            return VariableNode(identifier: value)
+        }
+    }
+        
+    func extractIdentifierVariable(from token: TokenSyntax) -> String {
+        switch token.tokenKind {
+        case .identifier(let variable):
+            return variable
+        default:
+            fatalError("Unexpected token")
+        }
     }
 
     // MARK: Practice 3
 
     func extractBinaryOperator(from token: TokenSyntax) -> BinaryExpressionNode.Operator? {
-        fatalError("Not Implemented")
+        print(token.tokenKind)
+        switch token.tokenKind {
+            case .spacedBinaryOperator(let op):
+                return BinaryExpressionNode.Operator(rawValue: op)
+            default:
+                return nil
+        }
     }
 
     private func parseBinaryOperatorRHS(expressionPrecedence: Int, lhs: Node?) -> Node? {
@@ -87,13 +139,67 @@ class Parser: SyntaxVisitor {
     // MARK: Practice 4
 
     func parseFunctionDefinitionArgument() -> FunctionNode.Argument {
-        fatalError("Not Implemented")
+        let id = extractArgment(from: currentToken)
+        read()
+        read()
+        read()
+        return FunctionNode.Argument(label: id, variableName: id)
     }
-
+    
+    func extractArgment(from token: TokenSyntax) -> String {
+        switch currentToken.tokenKind {
+        case .identifier(let id):
+            return id
+        default:
+            fatalError("Not Implemented")
+        }
+    }
+    
     func parseFunctionDefinition() -> Node {
-        fatalError("Not Implemented")
+        read()
+        let func_name = exractFunctionName(from: currentToken)
+        read()
+        read()
+        let arguments = extractFuncArgments()
+        read()
+        read()
+        read()
+        read()
+        let func_body = extractFuncBody()
+        read()
+        return FunctionNode(name: func_name, arguments: arguments, returnType: .double, body: func_body)
     }
-
+    
+    func exractFunctionName (from token: TokenSyntax) -> String {
+        switch token.tokenKind {
+        case .identifier(let func_name):
+            return func_name
+        default:
+            fatalError("Not Implemented")
+        }
+    }
+    
+    func extractFuncArgments () -> [FunctionNode.Argument] {
+        var argments: [FunctionNode.Argument] = []
+        while true {
+            if case .rightParen = currentToken.tokenKind {
+                break
+            }
+            if case .comma = currentToken.tokenKind {
+                read()
+            }
+            argments.append(parseFunctionDefinitionArgument())
+        }
+        return argments
+    }
+    
+    func extractFuncBody () -> Node {
+        guard let body = parseExpression() else {
+            fatalError("Could not parse expression")
+        }
+        return body
+    }
+ 
     // MARK: Practice 7
 
     func parseIfElse() -> Node {
