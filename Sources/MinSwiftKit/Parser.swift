@@ -46,49 +46,56 @@ class Parser: SyntaxVisitor {
     }
 
     func parseIdentifierExpression() -> Node {
-        let value = extractIdentifierVariable(from: currentToken)
-        print(peek(1).tokenKind)
-        if case .leftParen = peek(1).tokenKind {
+        guard let identifier_string = extractIdentifierVariable(from: currentToken) else {
+            fatalError("Not Implemented")
+        }
+        read()
+        if currentToken.tokenKind == TokenKind.leftParen {
             var call_argments:[CallExpressionNode.Argument] = []
             read()
-            read()
             while true {
-                let arg_label = extractArgment(from: currentToken)
-                read()
-                read()
-                guard let arg_value = parseExpression() else {
-                    fatalError("Could not parse expression")
-                }
-                print(arg_value)
-                if case .rightParen = currentToken.tokenKind {
+                if currentToken.tokenKind == TokenKind.rightParen {
                     break
-                }
-                if case .comma = currentToken.tokenKind {
+                } else if currentToken.tokenKind == TokenKind.comma {
                     read()
+                } else {
+                    guard  let argment_label = extractIdentifierVariable(from: currentToken) else {
+                        fatalError()
+                    }
+                    read()
+                    guard case .colon = currentToken.tokenKind else {
+                        fatalError()
+                    }
+                    read()
+                    guard let argment_value = parseExpression() else {
+                        fatalError()
+                    }
+                    print("---------")
+                    print(currentToken.tokenKind)
+                    print(currentToken.tokenKind)
+                    let argment = CallExpressionNode.Argument(label: argment_label, value: argment_value)
+                    call_argments.append(argment)
                 }
-                let argment = CallExpressionNode.Argument(label: arg_label, value: arg_value)
-                call_argments.append(argment)
             }
-            print(call_argments)
-            return CallExpressionNode(callee: value, arguments: call_argments)
+            read()
+            return CallExpressionNode(callee: identifier_string, arguments: call_argments)
         } else {
-            return VariableNode(identifier: value)
+            return VariableNode(identifier: identifier_string)
         }
     }
         
-    func extractIdentifierVariable(from token: TokenSyntax) -> String {
+    func extractIdentifierVariable(from token: TokenSyntax) -> String? {
         switch token.tokenKind {
         case .identifier(let variable):
             return variable
         default:
-            fatalError("Unexpected token")
+            return nil
         }
     }
 
     // MARK: Practice 3
 
     func extractBinaryOperator(from token: TokenSyntax) -> BinaryExpressionNode.Operator? {
-        print(token.tokenKind)
         switch token.tokenKind {
             case .spacedBinaryOperator(let op):
                 return BinaryExpressionNode.Operator(rawValue: op)

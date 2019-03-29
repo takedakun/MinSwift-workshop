@@ -18,6 +18,7 @@ class Practice5: ParserTestCase {
     }
 
     // 5-2
+
     func testFunctionCallingWithLabel() {
         load("doSomething(a: 10 + 20)") // identifier, leftParen, identifier, colon, <some expression> , rightParen
 
