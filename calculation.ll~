@@ -1,0 +1,10 @@
+warning: you may be able to install cllvm using your system-packager:
+     brew install llvm
+
+; ModuleID = 'main'
+source_filename = "main"
+
+define double @calc(double) {
+entry:
+  ret double 4.200000e+01
+}

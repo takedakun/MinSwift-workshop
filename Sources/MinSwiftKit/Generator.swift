@@ -45,37 +45,111 @@ private struct Generator<NodeType: Node>: GeneratorProtocol {
 
 extension Generator where NodeType == NumberNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        return FloatType.double.constant(node.value)
     }
 }
 
 extension Generator where NodeType == VariableNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        guard let variable = context.namedValues[node.identifier] else {
+            fatalError("Undefined variable")
+        }
+        return variable
     }
 }
 
 extension Generator where NodeType == BinaryExpressionNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        let LHS = generateIRValue(from: node.lhs, with: context)
+        let RHS = generateIRValue(from: node.rhs, with: context)
+        switch node.operator {
+        case .addition:
+            return context.builder.buildAdd(LHS, RHS)
+        case .subtraction:
+            return context.builder.buildSub(LHS, RHS)
+        case .multication:
+            return context.builder.buildMul(LHS, RHS)
+        case .division:
+            return context.builder.buildDiv(LHS, RHS)
+        case .lessThan:
+            let bool = context.builder.buildFCmp(LHS, RHS, .orderedLessThan, name: "cmptmp")
+            return context.builder.buildIntToFP(bool, type: FloatType.double, signed: true)
+        default:
+            fatalError("Not Implemented")
+        }
     }
 }
 
 extension Generator where NodeType == FunctionNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        let argumentTypes: [IRType] = [FloatType.double]
+        let returnType: IRType = FloatType.double
+        let functionType = FunctionType(argTypes: argumentTypes,
+                                        returnType: returnType)
+        let function = context.builder.addFunction(node.name, type: functionType)
+        
+        let entryBasicBlock = function.appendBasicBlock(named: "entry")
+        context.builder.positionAtEnd(of: entryBasicBlock)
+        
+        // Register arguments to namedValues
+        context.namedValues.removeAll()
+        for i in 0..<node.arguments.count {
+            context.namedValues[node.arguments[i].variableName] = function.parameters[i]
+        }
+        
+        let functionBody: IRValue = generateIRValue(from: node.body, with: context)
+        context.builder.buildRet(functionBody)
+        return functionBody
     }
 }
 
 extension Generator where NodeType == CallExpressionNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        print(node)
+        let function = context.module.function(named: node.callee)!
+        var arguments: [IRValue] = []
+        for i in 0..<node.arguments.count {
+            arguments.append(generateIRValue(from: node.arguments[i].value, with: context))
+        }
+        return context.builder.buildCall(function, args: arguments, name: "calltmp")
     }
 }
 
 extension Generator where NodeType == IfElseNode {
     func generate(with context: BuildContext) -> IRValue {
-        fatalError("Not Implemented")
+        let condition: IRValue = generateIRValue(from: node.condition, with: context)
+        
+        let boolean = context.builder.buildFCmp(condition,
+                                                FloatType.double.constant(0.0),
+                                                RealPredicate.orderedNotEqual,
+                                                name: "ifcond")
+        
+        let function = context.builder.insertBlock?.parent!
+        
+        let local = context.builder.buildAlloca(type: FloatType.double, name: "local")
+        
+        let thenBasicBlock = function!.appendBasicBlock(named: "then")
+        let elseBasicBlock = function!.appendBasicBlock(named: "else")
+        let mergeBasicBlock = function!.appendBasicBlock(named: "merge")
+        
+        context.builder.buildCondBr(condition: boolean, then: thenBasicBlock, else: elseBasicBlock)
+        context.builder.positionAtEnd(of: thenBasicBlock)
+        
+        let thenVal: IRValue = generateIRValue(from: node.then, with: context)
+        context.builder.buildBr(mergeBasicBlock)
+        
+        context.builder.positionAtEnd(of: elseBasicBlock)
+        
+        let elseVal: IRValue = generateIRValue(from: node.else!, with: context)
+        context.builder.buildBr(mergeBasicBlock)
+        
+        context.builder.positionAtEnd(of: mergeBasicBlock)
+        
+        let phi = context.builder.buildPhi(FloatType.double, name: "phi")
+        phi.addIncoming([(thenVal, thenBasicBlock), (elseVal, elseBasicBlock)])
+        context.builder.buildStore(phi, to: local)
+        
+        return phi
     }
 }
 

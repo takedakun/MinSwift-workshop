@@ -1,7 +1,7 @@
-func fib(_ x: Double) -> Double {
+func fib( x: Double) -> Double {
     if x < 3 {
         return 1
     } else {
-        return fib(x - 1) + fib(x - 2)
+        return fib(x: x - 1) + fib(x: x - 2)
     }
 }

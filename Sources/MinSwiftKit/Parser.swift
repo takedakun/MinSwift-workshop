@@ -9,7 +9,6 @@ class Parser: SyntaxVisitor {
     // MARK: Practice 1
 
     override func visit(_ token: TokenSyntax) {
-        print("Parsing \(token.tokenKind)")
         tokens.append(token)
     }
 
@@ -63,6 +62,10 @@ class Parser: SyntaxVisitor {
                         fatalError()
                     }
                     read()
+                    print(currentToken.tokenKind)
+                    for i in 0...6 {
+                        print(peek(i).tokenKind)
+                    }
                     guard case .colon = currentToken.tokenKind else {
                         fatalError()
                     }
@@ -70,9 +73,6 @@ class Parser: SyntaxVisitor {
                     guard let argment_value = parseExpression() else {
                         fatalError()
                     }
-                    print("---------")
-                    print(currentToken.tokenKind)
-                    print(currentToken.tokenKind)
                     let argment = CallExpressionNode.Argument(label: argment_label, value: argment_value)
                     call_argments.append(argment)
                 }
@@ -158,6 +158,7 @@ class Parser: SyntaxVisitor {
         case .identifier(let id):
             return id
         default:
+            print(currentToken.tokenKind)
             fatalError("Not Implemented")
         }
     }
@@ -210,7 +211,34 @@ class Parser: SyntaxVisitor {
     // MARK: Practice 7
 
     func parseIfElse() -> Node {
-        fatalError("Not Implemented")
+        guard case .ifKeyword = currentToken.tokenKind else {
+            fatalError("Not Implemented")
+        }
+        read()
+        guard let condition = parseExpression() else {
+            fatalError("Could not read condition")
+        }
+        guard case .leftBrace = currentToken.tokenKind else {
+            fatalError("No { ")
+        }
+        read()
+        guard let thenBlock = parseExpression() else {
+            fatalError("Could not read then block")
+        }
+        guard case .rightBrace = currentToken.tokenKind else {
+            fatalError("No }")
+        }
+        read()
+        guard case .elseKeyword = currentToken.tokenKind else {
+            fatalError("Not else")
+        }
+        read()
+        read()
+        guard let elseBlock = parseExpression() else {
+            fatalError("Could not read else block")
+        }
+        read()
+        return IfElseNode(condition: condition, then: thenBlock, else: elseBlock)
     }
 
     // PROBABLY WORKS WELL, TRUST ME
@@ -309,7 +337,10 @@ private extension BinaryExpressionNode.Operator {
         case .addition, .subtraction: return 20
         case .multication, .division: return 40
         case .lessThan:
-            fatalError("Not Implemented")
+            return 10
+        //fatalError  ("Not Implemented")
+        default:
+            fatalError()
         }
     }
 }

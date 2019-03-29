@@ -10,4 +10,8 @@ if CommandLine.arguments.count == 1 {
     let engine = Engine()
     try! engine.load(from: url)
     engine.dump()
+    
+    func square (x: Double) -> Double {
+        return x * x
+    }
 }
